@@ -6,10 +6,11 @@ import java.awt.event.MouseListener;
 // Must implement MouseListener
 
 public class boardMouseListener implements MouseListener {
-    int startX;
-    int startY;
-    int endX;
-    int endY;
+    static int startX;
+    static int startY;
+    static int endX;
+    static int endY;
+    String invalid = "Invalid move - ";
 
     public void mousePressed(MouseEvent e) {
         // Track the coordinates anywhere the user mouse presses within the board.
@@ -18,11 +19,11 @@ public class boardMouseListener implements MouseListener {
         int possibleStartY = e.getY()/44;
 
         if (possibleStartX < 0 || possibleStartX > 7 || possibleStartY < 0 || possibleStartY > 7) {
-            System.out.println("Invalid move - cannot select something outside of the board.");
+            System.out.println(invalid+"cannot select something outside of the board.");
             return;
         }
         if (Checkers.position[possibleStartX][possibleStartY] == null) {
-            System.out.println("Invalid move - cannot select an empty tile.");
+            System.out.println(invalid+"cannot select an empty tile.");
         }
 
         // If the tile selected contains a piece, track that tile using variables startX and startY.
@@ -39,25 +40,28 @@ public class boardMouseListener implements MouseListener {
 
         // If area selected is out of bounds OR the same tile as the starting piece.
         if (possibleEndX > 7 || possibleEndY > 7 || possibleEndX < 0 || possibleEndY < 0) {
-            System.out.println("Invalid move - cannot move piece outside of the board.");
+            System.out.println(invalid+"cannot move piece outside of the board.");
             return;
         }
         // If area selected is the same tile as the starting piece.
-        if (startX == possibleEndX && startY == possibleEndY) {
-            System.out.println("Invalid move - must move piece.");
+        else if (startX == possibleEndX && startY == possibleEndY) {
+            System.out.println(invalid+"must move piece.");
             return;
         }
-        // If you attempt to move a black piece as the first move.
-        if (!Checkers.position[startX][startY].isRed) {
-            System.out.println("Invalid move - you only control the red pieces.");
+        // If you attempt to move a black piece.
+        else if (!Checkers.position[startX][startY].isRed) {
+            System.out.println(invalid+"you only control the red pieces.");
             return;
         }
+        // If you attempt to move a checker on top of another checker on your team.
+        else if (Checkers.position[possibleEndX][possibleEndY] != null && Checkers.position[possibleEndX][possibleEndY].isRed) {
+            System.out.println(invalid+"cannot move piece on top of another piece of your team.");
+            return;
+            }
 
-        // If the tile selected is a valid move for that pieceType.
+        // If the tile selected is a normal move for that pieceType.
         if (Checkers.position[startX][startY].canMove(startX, startY, possibleEndX, possibleEndY)) {
             // Track this tile using endX and endY, and print coordinates the piece moved to.
-            endX = possibleEndX;
-            endY = possibleEndY;
             System.out.println("End: "+endX+ ","+endY);
 
             // Reassign that piece's starting tile to the one we released the mouse over.
@@ -71,7 +75,7 @@ public class boardMouseListener implements MouseListener {
             }
         }
         else {
-            System.out.println("Invalid move - the selected piece cannot move there.");
+            System.out.println(invalid+"the selected piece cannot move there.");
             return;
         }
         // Now redraw the board to see the new position updated graphically.
@@ -97,29 +101,23 @@ public class boardMouseListener implements MouseListener {
             if (Checkers.player.possibleStartX == Checkers.player.possibleEndX && Checkers.player.possibleStartY == Checkers.player.possibleEndY) {
                 continue;
             }
-            // If the movement desired is not allowed for that specific pieceType, call continue to try again.
-            if (!Checkers.position[Checkers.player.possibleStartX][Checkers.player.possibleStartY].canMove(Checkers.player.possibleStartX, Checkers.player.possibleStartY, Checkers.player.possibleEndX, Checkers.player.possibleEndY)) {
+            // If the movement desired is to a position where a piece of the same team exists.
+            if (Checkers.position[Checkers.player.possibleEndX][Checkers.player.possibleEndY] != null && !Checkers.position[Checkers.player.possibleEndX][Checkers.player.possibleEndY].isRed) {
                 continue;
             }
-            // Otherwise if the space piece is moving to is available: do the movement, call repaint, and break from the while loop.
-            if (Checkers.position[Checkers.player.possibleEndX][Checkers.player.possibleEndY] == null) {
-                // Add one to numberOfMoves++ rack all coordinates and add one to numberOfMoves++
+            // If the movement desired is not allowed for that specific pieceType, call continue to try again.
+            if (Checkers.position[Checkers.player.possibleStartX][Checkers.player.possibleStartY].canMove(Checkers.player.possibleStartX, Checkers.player.possibleStartY, Checkers.player.possibleEndX, Checkers.player.possibleEndY)) {
+                // Add one to computer's number of moves.
                 Checkers.player.playerNumberOfMoves++;
-                startX = Checkers.player.possibleStartX;
-                startY = Checkers.player.possibleStartY;
-                endX = Checkers.player.possibleEndX;
-                endY = Checkers.player.possibleEndY;
-
                 // Reassign that pieces starting tile to the one we released the mouse over.
                 Checkers.position[endX][endY] = Checkers.position[startX][startY];
                 // Make the starting position empty.
                 Checkers.position[startX][startY] = null;
 
-                // If checker reaches opposite side of the board, turn that position into a kingPiece.
+                // If the checker reaches opposite side of the board, turn that piece into a kingPiece.
                 if (endY == 7) {
                     Checkers.position[endX][endY] = new kingPiece(false);
                 }
-
                 Checkers.board.repaint();
                 break;
             }
